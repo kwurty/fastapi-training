@@ -8,11 +8,13 @@ from pydantic import BaseModel, EmailStr, conint
 
 class UserCreate(BaseModel):
     email: EmailStr
+    username: str
     password: str
 
 
 class UserOut(BaseModel):
     id: int
+    username: str
     email: EmailStr
     created_at: datetime
 
@@ -32,6 +34,7 @@ class UserToken(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[str]
+    username: str
 
 
 class PostBase(BaseModel):

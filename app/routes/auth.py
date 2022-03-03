@@ -24,6 +24,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
             status_code=status.HTTP_403_FORBIDDEN, detail=f"Invalid credentials")
 
     # generate token
-    token = oath2.create_access_token(data={"user_id": user.id})
+    token = oath2.create_access_token(
+        data={"user_id": user.id, "username": user.username})
 
     return {"access_token": token, "token_type": "bearer"}
