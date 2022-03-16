@@ -39,3 +39,12 @@ class Vote(Base):
         "users.id", ondelete="CASCADE"), primary_key=True, nullable=False)
     post_id = Column(Integer, ForeignKey(
         "posts.id", ondelete="CASCADE"), primary_key=True, nullable=False)
+
+
+class Follow(Base):
+    __tablename__ = "follows"
+
+    user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="CASCADE"), primary_key=True, nullable=False)
+    follow_user_id = Column(Integer, ForeignKey(
+        "users.id", ondelete="CASCADE"), primary_key=True, nullable=False)

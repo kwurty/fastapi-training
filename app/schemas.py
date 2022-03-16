@@ -6,6 +6,11 @@ from pydantic import BaseModel, EmailStr, conint
 # Refer to BaseModel
 
 
+class Follow(BaseModel):
+    user_id: int
+    follow_user_id: int
+
+
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
@@ -21,6 +26,16 @@ class UserOut(BaseModel):
     class Config:
         orm_mode = True
 
+class UserOutToken(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    created_at: datetime
+    access_token: str
+    token_type: str
+
+    class Config:
+        orm_mode = True
 
 class UserLogin(BaseModel):
     email: EmailStr
