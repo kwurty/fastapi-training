@@ -7,9 +7,8 @@ from pydantic import BaseModel, EmailStr, conint
 
 
 class Follow(BaseModel):
-    user_id: int
-    follow_user_id: int
-
+    user_id: str
+    follow_user_id: str
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -20,15 +19,24 @@ class UserCreate(BaseModel):
 class UserOut(BaseModel):
     id: int
     username: str
+    displayname: str
     email: EmailStr
     created_at: datetime
 
+
+    class Config:
+        orm_mode = True
+
+class UserOutFollowers(UserOut):
+    followers: int
+    following: int    
     class Config:
         orm_mode = True
 
 class UserOutToken(BaseModel):
     id: int
     username: str
+    displayname: str
     email: EmailStr
     created_at: datetime
     access_token: str
@@ -46,14 +54,27 @@ class UserToken(BaseModel):
     access_token: str
     token_type: str
 
+class UserProfile(BaseModel):
+    id: int
+    username: str
+    displayname: str
+    email: EmailStr
+    class Config:
+        orm_mode = True
+
+class UserUpdate(BaseModel):
+    username: Optional[str]
+    displayname: Optional[str]
+    email: Optional[EmailStr]
+    
 
 class TokenData(BaseModel):
     id: Optional[str]
     username: str
+    displayname: str
 
 
 class PostBase(BaseModel):
-    title: str
     content: str
     published: bool = True
     # This will convert the SQLAlchemy model to a dict that Pydantic can return
@@ -83,6 +104,7 @@ class Post(PostBase):
 class PostOut(BaseModel):
     Post: Post
     votes: int
+    liked_post: Optional[int]
 
     class Config:
         orm_mode = True
@@ -91,3 +113,14 @@ class PostOut(BaseModel):
 class Vote(BaseModel):
     post_id: int
     dir: int
+
+class Hashtag(BaseModel):
+    hashtag: str
+    count: int
+    class Config:
+        orm_mode = True
+
+class HashtagNoCount(BaseModel):
+    hashtag: str
+    class Config:
+        orm_mode = True

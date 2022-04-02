@@ -25,6 +25,15 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
 
     # generate token
     token = oath2.create_access_token(
-        data={"user_id": user.id, "username": user.username})
+        data={"user_id": user.id, "username": user.username, "displayname": user.displayname})
 
+    return {"access_token": token, "token_type": "bearer"}
+
+@router.get('/refresh', response_model=schemas.UserToken)
+def refresh_token(db: Session=Depends(get_db), current_user: int = Depends(oath2.get_current_user)):
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+
+    token = oath2.create_access_token(
+        data={"user_id": user.id, "username": user.username, "displayname": user.displayname})
+    
     return {"access_token": token, "token_type": "bearer"}

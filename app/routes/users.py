@@ -1,7 +1,11 @@
+from msilib import schema
 from .. import utils, models, schemas, oath2
 from ..database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import func, desc
+from typing import List
 from fastapi import Response, status, HTTPException, Depends, APIRouter
+import re
 
 # create router object
 router = APIRouter(
@@ -10,6 +14,11 @@ router = APIRouter(
     tags=['Users']
 )
 
+
+@router.get('/followexample')
+def follow_example(user: int = Depends(oath2.get_current_user), db: Session= Depends(get_db)):
+    following = db.query(func.count(models.Follow.user_id).label("following")).filter(models.Follow.user_id == user.id).all()
+    return following
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOutToken)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -24,7 +33,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
             hashed_password = utils.hashPassword(user.password)
             user.password = hashed_password
             user.email = user.email.lower()
-            user.username = user.username.lower()
+            user.username = re.sub(r"\s+", "", user.username.lower(), flags=re.UNICODE)
             new_user = models.User(**user.dict())
             db.add(new_user)
             db.commit()
@@ -81,12 +90,79 @@ async def follow_user(id: int, db: Session = Depends(get_db), current_user: int 
         db.commit()
         return {"message", "Successfully followed user with id {id}"}
 
+@router.get('/explore', response_model=List[schemas.UserProfile])
+def get_random_users(db: Session = Depends(get_db), current_user: int = Depends(oath2.get_current_user)):
+    users = db.query(models.User).filter(models.User.id != current_user.id).order_by(func.random()).limit(10).all()
 
-@router.get("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOut)
-def get_user(id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == id).first()
+    return users
+
+@router.get("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOutFollowers)
+def get_user(id: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == id).first()
+    
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id {id} was not found")
+                            detail=f"User with username {id} was not found")
 
+    following = db.query(models.Follow.user_id, func.count(models.Follow.user_id).label("following")).filter(models.Follow.user_id == user.id).group_by(models.Follow.user_id).all()
+    followers = db.query(models.Follow.follow_user_id, func.count(models.Follow.user_id).label("followed")).filter(models.Follow.follow_user_id == user.id).group_by(models.Follow.follow_user_id).all()
+
+    if (len(followers)> 0) :
+        user.followers = followers[0][1]
+    else:
+        user.followers = 0
+    if  (len(following) > 0):
+        user.following = following[0][1]
+    else:
+        user.following = 0
+        
     return user
+
+
+# Do the actual update
+@router.put('/{id}', response_model=schemas.UserOut)
+def update_user(id: int, user: schemas.UserUpdate, db: Session = Depends(get_db), current_user: int = Depends(oath2.get_current_user)):
+
+    if( id != current_user.id):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"You are not authorized to edit user with id {id}")
+    
+    updated_user = db.query(models.User).filter(models.User.id == id).first()
+
+    for attr, val in user:
+        if(val != None):
+            setattr(updated_user, attr, val)
+
+    db.commit()
+    return updated_user
+
+@router.get('/{id}/posts', response_model=List[schemas.PostOut])
+def get_users_posts(id: str, db: Session = Depends(get_db), skip: int = 0, limit: int = 50,  current_user: int = Depends(oath2.get_current_user) ):
+
+    user = db.query(models.User).filter(models.User.username == id).first()
+    if (not user):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with username {id} not found")
+
+    liked_post = (db.query(models.Vote.post_id.label("post_id"), func.count(models.Vote.user_id).label("liked_post")).filter(models.Vote.user_id == current_user.id).group_by(models.Vote.post_id).subquery())
+        
+
+    posts = (db.query(models.Post, func.count(models.Vote.post_id).label("votes"), liked_post.c.liked_post)\
+                .join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True)\
+                    .outerjoin(liked_post, models.Post.id == liked_post.c.post_id)\
+                        .group_by(models.Post.id, liked_post.c.liked_post)\
+                            .filter(models.Post.user_id == user.id)\
+                                .limit(limit)\
+                                    .offset(skip)\
+                                        .all())
+
+    return posts
+
+
+# Return the info for the logged in user  
+@router.get('/',  response_model=schemas.UserProfile)
+def get_logged_in_user(db: Session = Depends(get_db), current_user: int = Depends(oath2.get_current_user)):
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+
+    if not (user):
+        raise HTTPException(stauts_code=status.HTTP_404_NOT_FOUND, detail=f"You are not authorized to view user")
+    return user
+
