@@ -29,7 +29,8 @@ class UserOut(BaseModel):
 
 class UserOutFollowers(UserOut):
     followers: int
-    following: int    
+    following: int
+    is_following: bool
     class Config:
         orm_mode = True
 

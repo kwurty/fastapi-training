@@ -112,26 +112,6 @@ def get_liked_posts(current_user: int = Depends(oath2.get_current_user), db: Ses
                     .all()
     return liked_posts
 
-@router.get('/hashtags', response_model=List[schemas.Hashtag])
-def get_hashtags(db: Session = Depends(get_db)):
-
-    thirty_days_ago = datetime.now() - timedelta(days=30) 
-    hashtags = db.query(models.Hashtag.hashtag, func.count(models.Hashtag.hashtag).label("count")).filter(models.Hashtag.created_at >= thirty_days_ago).group_by(models.Hashtag.hashtag).order_by(desc("count")).all()
-    return hashtags
-
-@router.get('/hashtags/latest', response_model=List[schemas.HashtagNoCount])
-def get_latest_hashtags(db: Session=Depends(get_db)):
-    thirty_days_ago = datetime.now() - timedelta(days=30) 
-    hashtags = db.query(models.Hashtag.hashtag.distinct().label("hashtag")).filter(models.Hashtag.created_at > thirty_days_ago).limit(30).all()
-    return hashtags
-
-@router.get('/hashtags/explore', response_model=List[schemas.HashtagNoCount])
-def get_latest_hashtags(db: Session=Depends(get_db)):
-    thirty_days_ago = datetime.now() - timedelta(days=30) 
-    hashtags = db.query(models.Hashtag).order_by(func.random()).limit(10).all()
-    return hashtags
-
-
 
 @ router.get('/{id}', response_model=schemas.PostOut)
 # id:int - will automatically convert the item to an integer. If a string cannot be changed, it will return error

@@ -7,7 +7,7 @@
 
 # Import models from the models file in current directory
 # from . import models, schemas, utils
-from .routes import users, posts, auth, vote
+from .routes import users, posts, auth, vote, hashtags
 from .config import settings
 from . import models
 
@@ -81,6 +81,7 @@ app.include_router(posts.router)
 app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(vote.router)
+app.include_router(hashtags.router)
 
 
 @app.get("/")

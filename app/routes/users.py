@@ -92,12 +92,13 @@ async def follow_user(id: int, db: Session = Depends(get_db), current_user: int 
 
 @router.get('/explore', response_model=List[schemas.UserProfile])
 def get_random_users(db: Session = Depends(get_db), current_user: int = Depends(oath2.get_current_user)):
+    
     users = db.query(models.User).filter(models.User.id != current_user.id).order_by(func.random()).limit(10).all()
 
     return users
 
 @router.get("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.UserOutFollowers)
-def get_user(id: str, db: Session = Depends(get_db)):
+def get_user(id: str, db: Session = Depends(get_db), current_user: int = Depends(oath2.get_current_user)):
     user = db.query(models.User).filter(models.User.username == id).first()
     
     if not user:
@@ -106,6 +107,12 @@ def get_user(id: str, db: Session = Depends(get_db)):
 
     following = db.query(models.Follow.user_id, func.count(models.Follow.user_id).label("following")).filter(models.Follow.user_id == user.id).group_by(models.Follow.user_id).all()
     followers = db.query(models.Follow.follow_user_id, func.count(models.Follow.user_id).label("followed")).filter(models.Follow.follow_user_id == user.id).group_by(models.Follow.follow_user_id).all()
+    isfollowing = db.query(models.Follow.user_id).filter(models.Follow.follow_user_id == user.id, models.Follow.user_id == current_user.id).first()
+
+    if(isfollowing == None):
+        user.is_following = False
+    else:
+        user.is_following = True
 
     if (len(followers)> 0) :
         user.followers = followers[0][1]
