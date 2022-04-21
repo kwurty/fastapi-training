@@ -23,9 +23,6 @@ def follow_example(user: int = Depends(oath2.get_current_user), db: Session= Dep
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOutToken)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # Reference the create post for info. This is the same
-    """
-    hello! I can write crap in here I guess and it's a comment?
-    """
 
     if not db.query(models.User).filter(models.User.email == user.email.lower()).first():
         if not db.query(models.User).filter(models.User.username == user.username.lower()).first():
@@ -82,18 +79,21 @@ async def follow_user(id: int, db: Session = Depends(get_db), current_user: int 
     if(follower_found):
         followers_query.delete(synchronize_session=False)
         db.commit()
-        return {"message", "Successfully unfollowed user with id {id}"}
+        return {"follow_user" : id, "following" : False}
 
     else:
         new_follow = models.Follow(user_id=current_user.id, follow_user_id=id)
         db.add(new_follow)
         db.commit()
-        return {"message", "Successfully followed user with id {id}"}
+        return {"follow_user" : id, "following" : True}
+        
 
-@router.get('/explore', response_model=List[schemas.UserProfile])
+@router.get('/explore', )
 def get_random_users(db: Session = Depends(get_db), current_user: int = Depends(oath2.get_current_user)):
     
-    users = db.query(models.User).filter(models.User.id != current_user.id).order_by(func.random()).limit(10).all()
+    followed_users = db.query(models.Follow.follow_user_id).filter(models.Follow.user_id == current_user.id).group_by(models.Follow.follow_user_id).subquery()
+    
+    users = db.query(models.User, followed_users.c.follow_user_id).join(followed_users, models.User.id == followed_users.c.follow_user_id, isouter=True).order_by(func.random()).limit(10).all()
 
     return users
 

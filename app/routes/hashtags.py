@@ -27,9 +27,8 @@ def get_latest_hashtags(db: Session=Depends(get_db)):
 
 @router.get('/explore', response_model=List[schemas.HashtagNoCount])
 def get_latest_hashtags(db: Session=Depends(get_db)):
-    thirty_days_ago = datetime.now() - timedelta(days=30) 
-    distinct_hashtags = db.query(models.Hashtag.hashtag.distinct().label("hashtag")).filter(models.Hashtag.created_at > thirty_days_ago).subquery()
-    hashtags = db.query(models.Hashtag.hashtag.distinct().label("hashtag")).order_by(func.random()).limit(10).all()
+    distinct_hashtags = db.query(models.Hashtag.hashtag.distinct().label("hashtag")).subquery()
+    hashtags = db.query(distinct_hashtags).order_by(func.random()).limit(10).all()
     return hashtags
 
 @router.get('/', response_model=List[schemas.Hashtag])
