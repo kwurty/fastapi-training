@@ -1,4 +1,3 @@
-from msilib import schema
 from .. import utils, models, schemas, oath2
 from ..database import get_db
 from sqlalchemy.orm import Session
