@@ -54,7 +54,7 @@ sniffio==1.2.0
 spacy==2.3.7
 SQLAlchemy==1.4.31
 srsly==1.0.5
-starlette==0.17.1
+starlette==0.25.0
 thinc==7.4.5
 toml==0.10.2
 tomlkit==0.5.11
